@@ -1,0 +1,27 @@
+services:
+  devicefit:
+    build: .
+    init: true
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      NODE_OPTIONS: --max-old-space-size=768
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      HOME: /tmp/devicefit
+      XDG_CACHE_HOME: /tmp/devicefit-cache
+      XDG_CONFIG_HOME: /tmp/devicefit-config
+      GOOGLE_SAFE_BROWSING_API_KEY: ${GOOGLE_SAFE_BROWSING_API_KEY:-}
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    cpus: 2.0
+    pids_limit: 128
+    shm_size: 512m
+    restart: unless-stopped

@@ -2,10 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createAppServer } from "../server.mjs";
 
-test("analysis API validates requests, reports real job status, and exposes no fake device profiles", async (context) => {
+test("analysis API validates requests, reports real job status, and advertises emulated device profiles", async (context) => {
   const server = createAppServer({
-    analyzer: async (_url, onProgress) => {
+    analyzer: async (_url, onProgress, options) => {
       onProgress({ id: "fixture", label: "Test fixture", status: "completed", detail: "API test only" });
+      options.onScreenshot("budget-phone", "image/jpeg", Buffer.from("screenshot"));
       return { metrics: { test: { value: 1, dataSource: "Test fixture" } }, limitations: [] };
     },
   });
@@ -29,7 +30,17 @@ test("analysis API validates requests, reports real job status, and exposes no f
   const report = await fetch(`${base}/api/analyze/${analysisId}/report`).then((response) => response.json());
   assert.equal(report.analysisId, analysisId);
   assert.equal(report.report.metrics.test.value, 1);
+  const screenshotIndex = await fetch(`${base}/api/analyze/${analysisId}/screenshots`).then((response) => response.json());
+  assert.equal(screenshotIndex.screenshots.length, 1);
+  const screenshot = await fetch(`${base}${screenshotIndex.screenshots[0].url}`);
+  assert.equal(screenshot.headers.get("content-type"), "image/jpeg");
+  assert.equal(await screenshot.text(), "screenshot");
   const profiles = await fetch(`${base}/api/device-profiles`).then((response) => response.json());
-  assert.equal(profiles.available, false);
-  assert.deepEqual(profiles.profiles, []);
+  assert.equal(profiles.available, true);
+  assert.equal(profiles.physicalDevicesTested, false);
+  assert.equal(profiles.profiles.length, 3);
+  assert.ok(profiles.profiles.every((profile) => profile.estimationOnly));
+  const providers = await fetch(`${base}/api/security/providers`).then((response) => response.json());
+  assert.equal(typeof providers.googleSafeBrowsing.configured, "boolean");
+  assert.equal(providers.googleSafeBrowsing.optInRequired, true);
 });

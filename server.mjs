@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -5,14 +6,15 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeWebsite } from "./lib/analyzer.mjs";
 import { validateTarget } from "./lib/safety.mjs";
+import { getDeviceProfiles } from "./lib/browser-analyzer.mjs";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const PUBLIC_DIR = resolve(ROOT, "public");
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "127.0.0.1";
 const MAX_BODY_BYTES = 8 * 1024;
-const MAX_JOBS = 2;
-const MAX_QUEUE = 8;
+const MAX_JOBS = 1;
+const MAX_QUEUE = 5;
 const RATE_LIMIT_COUNT = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const JOB_TTL_MS = 60 * 60 * 1000;
@@ -72,6 +74,12 @@ async function runQueue(analyzer = analyzeWebsite) {
     analyzer(job.url, (event) => {
       job.progress.push(event);
       updateJob(job, {});
+    }, {
+      analysisId: job.id,
+      shareUrlForThreatCheck: job.shareUrlForThreatCheck,
+      onScreenshot: (profileId, mimeType, bytes) => {
+        job.screenshots.set(profileId, { mimeType, bytes });
+      },
     }).then((report) => {
       updateJob(job, { status: "completed", report, completedAt: new Date().toISOString() });
     }).catch((error) => {
@@ -133,6 +141,9 @@ export function createAppServer({ analyzer = analyzeWebsite } = {}) {
         try {
           body = await readJson(req);
           validateTarget(body.url);
+          if (body.shareUrlForThreatCheck !== undefined && typeof body.shareUrlForThreatCheck !== "boolean") {
+            throw new Error("shareUrlForThreatCheck must be a boolean.");
+          }
         } catch (error) {
           return json(res, 400, { error: error.message });
         }
@@ -141,7 +152,8 @@ export function createAppServer({ analyzer = analyzeWebsite } = {}) {
         const id = randomUUID();
         const job = {
           id, url: body.url, status: "queued", createdAt: new Date().toISOString(),
-          updatedAt: Date.now(), progress: [], report: null, error: null,
+          shareUrlForThreatCheck: body.shareUrlForThreatCheck === true,
+          updatedAt: Date.now(), progress: [], report: null, error: null, screenshots: new Map(),
         };
         jobs.set(id, job);
         queue.push(job);
@@ -163,11 +175,66 @@ export function createAppServer({ analyzer = analyzeWebsite } = {}) {
           report: job.status === "completed" ? job.report : undefined,
         });
       }
+      const screenshotMatch = pathname.match(/^\/api\/analyze\/([0-9a-f-]{36})\/screenshots\/([a-z0-9-]+)$/i);
+      if (req.method === "GET" && screenshotMatch) {
+        const job = jobs.get(screenshotMatch[1]);
+        const image = job?.screenshots.get(screenshotMatch[2]);
+        if (!image) return json(res, 404, { error: "Screenshot not found or expired." });
+        res.writeHead(200, {
+          "content-type": image.mimeType,
+          "content-length": image.bytes.length,
+          "cache-control": "private, no-store",
+          "x-content-type-options": "nosniff",
+          "content-security-policy": "default-src 'none'; sandbox",
+        });
+        return res.end(image.bytes);
+      }
+      const screenshotsMatch = pathname.match(/^\/api\/analyze\/([0-9a-f-]{36})\/screenshots$/i);
+      if (req.method === "GET" && screenshotsMatch) {
+        const job = jobs.get(screenshotsMatch[1]);
+        if (!job) return json(res, 404, { error: "Analysis not found or expired." });
+        return json(res, 200, {
+          analysisId: job.id,
+          screenshots: [...job.screenshots.keys()].map((profile) => ({
+            profile,
+            url: `/api/analyze/${job.id}/screenshots/${profile}`,
+            mimeType: job.screenshots.get(profile).mimeType,
+            bytes: job.screenshots.get(profile).bytes.length,
+          })),
+        });
+      }
+      const securityMatch = pathname.match(/^\/api\/security\/([0-9a-f-]{36})$/i);
+      if (req.method === "GET" && securityMatch) {
+        const job = jobs.get(securityMatch[1]);
+        if (!job) return json(res, 404, { error: "Analysis not found or expired." });
+        if (job.status !== "completed") return json(res, 409, { error: "Security analysis is not ready.", status: job.status });
+        return json(res, 200, {
+          analysisId: job.id,
+          security: job.report.security,
+          headers: job.report.response.securityHeaders,
+          issues: job.report.issues.filter((issue) => ["Security headers", "Cookies", "Mixed content", "Resources"].includes(issue.category)),
+        });
+      }
       if (req.method === "GET" && pathname === "/api/device-profiles") {
-        return json(res, 200, { available: false, profiles: [], reason: "Browser emulation is not configured in this deployment." });
+        return json(res, 200, {
+          available: true,
+          dataSource: "Playwright Chromium emulation configuration",
+          physicalDevicesTested: false,
+          profiles: getDeviceProfiles(),
+          note: "Profiles are estimates; their analysis measurements are produced live for each job.",
+        });
+      }
+      if (req.method === "GET" && pathname === "/api/security/providers") {
+        return json(res, 200, {
+          googleSafeBrowsing: {
+            configured: Boolean(process.env.GOOGLE_SAFE_BROWSING_API_KEY),
+            optInRequired: true,
+            dataShared: "The submitted URL is sent to Google only when the user opts in and the API key is configured.",
+          },
+        });
       }
       if (req.method === "GET" && pathname === "/api/health") {
-        return json(res, 200, { status: "ok", queueDepth: queue.length, activeJobs, browserWorker: "unavailable" });
+        return json(res, 200, { status: "ok", queueDepth: queue.length, activeJobs, browserWorker: "Playwright Chromium" });
       }
       if (req.method === "GET") return await serveStatic(pathname, res);
       json(res, 404, { error: "Not found." });

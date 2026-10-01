@@ -35,9 +35,10 @@
             <button id="submit-button" type="submit"><span>Analyze website</span><span aria-hidden="true">→</span></button>
           </div>
           <div class="form-foot">
-            <span id="url-help">Public HTTP(S) · standard ports · safe header checks</span>
-            <span class="privacy-note"><span aria-hidden="true">◈</span> No page content stored</span>
+            <span id="url-help">Public HTTP(S) · standard ports · real Chromium checks</span>
+            <span class="privacy-note"><span aria-hidden="true">◈</span> Reports &amp; screenshots expire in 1 hour</span>
           </div>
+          <label class="threat-optin"><input id="safe-browsing-optin" type="checkbox"><span>Optional: Check Google Safe Browsing. This shares the submitted URL with Google.</span><span id="safe-browsing-status" class="threat-provider-status">Checking provider…</span></label>
         </form>
         <div class="trust-row">
           <span><b>01</b> DNS &amp; reachability</span>
@@ -63,8 +64,8 @@
         <div class="method-grid">
           <div><h2>Signals you can<br>actually verify.</h2></div>
           <div>
-            <p>DeviceFit checks the target using DNS lookups and a bounded HTTP <code>HEAD</code> request. If the server rejects HEAD, it retries with a bounded GET, reads only response headers, and closes the response. Redirect destinations are validated and connections are pinned to checked public addresses.</p>
-            <p>This deployment does not run a browser. Core Web Vitals, screenshots, responsive behavior, accessibility and device fit are shown as unavailable—not guessed. If a page responds with HTTP 405, it means the server rejected the check method; it does not, by itself, mean the site is broken.</p>
+            <p>DeviceFit measures DNS, TLS and response-header timings, then runs real Chromium against a bounded, SSRF-checked network bridge. CPU and network throttling model broad phone, tablet and laptop scenarios; they do not test physical devices.</p>
+            <p>Browser paint/layout/resource metrics, responsive viewports, screenshots and automated axe-core findings are produced live. Device-class fit is an estimate derived from those measurements, not a model-specific recommendation. A server-side HTTP 405 means that probe method was rejected; it does not, by itself, mean the site is broken.</p>
           </div>
         </div>
       </section>
@@ -72,9 +73,9 @@
       <section id="limits" class="limits-section">
         <div class="section-kicker">LIMITATIONS &amp; PRIVACY</div>
         <div class="limits-grid">
-          <article><span>01</span><h3>No device testing</h3><p>No physical phones, tablets or laptops are tested. Device suitability and current product prices cannot be determined by this deployment.</p></article>
-          <article><span>02</span><h3>Browsing safety is unknown</h3><p>Headers and TLS observations do not detect all threats, constitute penetration testing, or prove a site is safe or malware-free.</p></article>
-          <article><span>03</span><h3>Minimal collection</h3><p>Only the submitted URL and check results are kept in process memory for up to one hour. Page content and cookie values are not stored.</p></article>
+          <article><span>01</span><h3>Emulation, not a device lab</h3><p>Chromium estimates phone/tablet/laptop-class website fit under emulated CPU and network conditions. No physical device or live retail-price feed is used.</p></article>
+          <article><span>02</span><h3>Not a security audit</h3><p>Headers, TLS and optional threat-list signals do not detect every threat or prove a site is safe. Google Safe Browsing receives the submitted URL only after explicit opt-in and provider configuration.</p></article>
+          <article><span>03</span><h3>Minimal collection</h3><p>Submitted URLs, measurements and temporary screenshots stay in process memory for up to one hour. Page content and cookie values are not stored. Restarting the service clears reports.</p></article>
         </div>
       </section>
     </main>

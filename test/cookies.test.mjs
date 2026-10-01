@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyzeCookies } from "../lib/analyzer.mjs";
+import { analyzeCookies } from "../lib/cookie-analysis.mjs";
 
 test("reports cookie flag counts without retaining cookie values", () => {
   const result = analyzeCookies([
