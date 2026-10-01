@@ -33,3 +33,19 @@ test("enforces the redirect limit", async () => {
   );
   assert.equal(requests, 6);
 });
+
+test("retries a rejected HEAD with a bounded GET and uses that response", async () => {
+  const methods = [];
+  const result = await requestPublicURL("https://public.example/", {
+    resolveHost: publicResolver,
+    probe: async (_url, _address, _family, method) => {
+      methods.push(method);
+      return method === "HEAD"
+        ? { statusCode: 405, headers: {} }
+        : { statusCode: 200, headers: { "content-type": "text/html" }, method };
+    },
+  });
+  assert.deepEqual(methods, ["HEAD", "GET"]);
+  assert.equal(result.response.statusCode, 200);
+  assert.equal(result.timings[0].method, "GET");
+});
