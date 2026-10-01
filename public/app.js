@@ -131,7 +131,17 @@ function renderReport(id, report) {
   }).join("");
   const screenshots = [...(report.browserAnalysis?.screenshots || []), ...(report.browserAnalysis?.viewportScreenshots || [])].map((shot) => `<figure class="screenshot-card"><img loading="lazy" src="${escapeHtml(shot.url)}" alt="Real Chromium screenshot for ${escapeHtml(shot.label)}" width="360"><figcaption><strong>${escapeHtml(shot.label)}</strong><span>${escapeHtml(shot.bytes)} bytes · ${escapeHtml(shot.mimeType)}</span></figcaption></figure>`).join("");
   const profileData = report.browserAnalysis?.profiles || [];
-  const accessibilitySummary = profileData.filter((profile) => profile.accessibility?.status === "measured").map((profile) => `<article class="a11y-card"><strong>${escapeHtml(profile.label)}</strong><span>${escapeHtml(profile.accessibility.violations.length)} axe violations · ${escapeHtml(profile.accessibility.passes)} rules passed · ${escapeHtml(profile.accessibility.incomplete)} need manual review</span></article>`).join("");
+  const accessibilitySummary = profileData.map((profile) => {
+    const audit = profile.accessibility;
+    const status = audit?.status === "measured"
+      ? `${audit.violations.length} axe violations · ${audit.passes} rules passed · ${audit.incomplete} need manual review`
+      : audit?.status === "not_representative"
+        ? "Not representative: no visible target page content was rendered."
+        : audit?.reason
+          ? `Scan unavailable: ${audit.reason}`
+          : "Not run: this browser scenario did not complete.";
+    return `<article class="a11y-card"><strong>${escapeHtml(profile.label)}</strong><span>${escapeHtml(status)}</span></article>`;
+  }).join("");
   const technologyTags = (report.technologyDetection?.detected || []).map((technology) => `<span class="tech-tag">${escapeHtml(technology)}</span>`).join("");
   const risk = report.security?.malwareRisk || { classification: "UNKNOWN", reason: "Unable to verify." };
   const riskTitle = risk.classification === "HIGH" ? "Known threat-list match detected" :

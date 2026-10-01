@@ -1,11 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateScenarioSuitability, hasRenderedContent, runBrowserAnalysis } from "../lib/browser-analyzer.mjs";
+import { calculateScenarioSuitability, hasRenderedContent, runBrowserAnalysis, runOptionalAccessibilityAudit } from "../lib/browser-analyzer.mjs";
 
 test("requires visible content or browser paint before calling an emulation a successful render", () => {
   assert.equal(hasRenderedContent({ bodyTextLength: 0 }, { fcpMs: null, lcpMs: null }), false);
   assert.equal(hasRenderedContent({ bodyTextLength: 0 }, { fcpMs: 80, lcpMs: null }), true);
   assert.equal(hasRenderedContent({ bodyTextLength: 12 }, { fcpMs: null, lcpMs: null }), true);
+});
+
+test("keeps page-analysis results when the bounded accessibility audit fails", async () => {
+  const result = await runOptionalAccessibilityAudit(async () => {
+    throw new Error("axe test error");
+  }, null, null, 100);
+  assert.equal(result.status, "unavailable");
+  assert.match(result.reason, /axe test error/);
+  assert.deepEqual(result.violations, []);
 });
 
 test("calculates transparent scenario suitability only from rendered measurements", () => {
