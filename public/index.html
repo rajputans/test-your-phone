@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Evidence-based public website reachability, TLS and security-header analyzer.">
+    <meta name="theme-color" content="#f5f7fa">
+    <title>DeviceFit AI — Know Before You Browse</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="DeviceFit AI home">
+        <span class="brand-mark" aria-hidden="true">D</span>
+        <span>DeviceFit <strong>AI</strong></span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#how-it-works">How it works</a>
+        <a href="#limits">Limitations</a>
+      </nav>
+      <span class="live-badge"><i></i> Live checks</span>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow"><span>PUBLIC WEB DIAGNOSTICS</span><span class="eyebrow-line"></span><span>01 / ANALYZE</span></div>
+        <h1>Know before<br>you <em>browse.</em></h1>
+        <p class="hero-copy">Measure real DNS, connection, TLS and public security-header signals for a website. Every result is labeled with its source—no simulated scores.</p>
+        <form id="analyze-form" class="analyzer">
+          <label for="url-input">Website URL</label>
+          <div class="input-row">
+            <span class="input-icon" aria-hidden="true">↗</span>
+            <input id="url-input" name="url" type="url" placeholder="https://example.com" autocomplete="url" required maxlength="2048" aria-describedby="url-help">
+            <button id="submit-button" type="submit"><span>Analyze website</span><span aria-hidden="true">→</span></button>
+          </div>
+          <div class="form-foot">
+            <span id="url-help">Public HTTP(S) sites · standard ports only · HEAD requests only</span>
+            <span class="privacy-note"><span aria-hidden="true">◈</span> No page content stored</span>
+          </div>
+        </form>
+        <div class="trust-row">
+          <span><b>01</b> DNS &amp; reachability</span>
+          <span><b>02</b> TLS certificate</span>
+          <span><b>03</b> Response headers</span>
+        </div>
+      </section>
+
+      <section id="analysis-panel" class="analysis-panel hidden" aria-live="polite">
+        <div class="panel-heading">
+          <div><div class="section-kicker">ANALYSIS SESSION</div><h2 id="analysis-title">Preparing checks</h2></div>
+          <span id="status-pill" class="status-pill">QUEUED</span>
+        </div>
+        <p id="analysis-url" class="analysis-url"></p>
+        <ol id="progress-list" class="progress-list"></ol>
+        <div id="error-box" class="error-box hidden" role="alert"></div>
+        <div id="report" class="report hidden"></div>
+      </section>
+
+      <section id="how-it-works" class="method-section">
+        <div class="section-kicker">A SMALL, HONEST FIRST STEP</div>
+        <div class="method-grid">
+          <div><h2>Signals you can<br>actually verify.</h2></div>
+          <div>
+            <p>DeviceFit checks the target using DNS lookups and a bounded HTTP <code>HEAD</code> request. Redirect destinations are independently checked against public IP ranges, and connections are pinned to the validated address.</p>
+            <p>This initial deployment does not run a browser. Core Web Vitals, screenshots, responsive behavior, accessibility, malware reputation and device suitability are therefore shown as unavailable—not guessed.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="limits" class="limits-section">
+        <div class="section-kicker">LIMITATIONS &amp; PRIVACY</div>
+        <div class="limits-grid">
+          <article><span>01</span><h3>No browser emulation</h3><p>No physical devices or Playwright sessions are run. Device fit cannot be determined from these server-side checks.</p></article>
+          <article><span>02</span><h3>Not a security audit</h3><p>Headers and TLS observations do not constitute penetration testing or prove a site is safe or malware-free.</p></article>
+          <article><span>03</span><h3>Minimal collection</h3><p>Only the submitted URL and check results are kept in process memory for up to one hour. Page content and cookie values are not stored.</p></article>
+        </div>
+      </section>
+    </main>
+
+    <footer><a class="brand footer-brand" href="/"><span class="brand-mark" aria-hidden="true">D</span><span>DeviceFit <strong>AI</strong></span></a><span>Evidence first. Estimates labeled.</span><span>HEAD-only public diagnostics</span></footer>
+  </body>
+</html>
